@@ -1,15 +1,42 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpStatus,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { ApiResponseWithData } from 'src/common/decorators/api-response-with-data.decorator';
+import { CreateUserResponseDto } from './dto/create-user-response.dto';
+import { ApiOperation } from '@nestjs/swagger';
+import { ApiResponseDto } from 'src/common/dto/api-response.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post()
-  create(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.create(createAuthDto);
+  @ApiOperation({ summary: 'User register' })
+  @ApiResponseWithData(
+    CreateUserResponseDto,
+    'User Create succesfully',
+    HttpStatus.CREATED,
+  )
+  @ApiResponseWithData(null, 'User not created', HttpStatus.BAD_REQUEST)
+  @Post('register')
+  async create(
+    @Body() createUserDto: CreateUserDto,
+  ): Promise<ApiResponseDto<CreateUserResponseDto>> {
+    const user = await this.authService.create(createUserDto);
+    return ApiResponseDto.Success(
+      user,
+      'User created successfully',
+      'User completed registration',
+    );
   }
 
   @Get()
@@ -23,8 +50,8 @@ export class AuthController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.authService.update(+id, updateUserDto);
   }
 
   @Delete(':id')
