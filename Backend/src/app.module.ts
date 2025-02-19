@@ -9,6 +9,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { typeOrmConfig } from './common/config/typeorm.config';
 import { configValidationSchema } from './common/config/validation.config';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { RequestContextMiddleware } from './common/middleware/request-context.mi
       inject: [ConfigService],
     }),
     CommonModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
