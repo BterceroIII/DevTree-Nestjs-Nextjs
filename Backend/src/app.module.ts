@@ -41,4 +41,3 @@ export class AppModule implements NestModule {
       .forRoutes('*'); // Applies middleware to all routes
   }
 }
-
