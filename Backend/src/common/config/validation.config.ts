@@ -41,4 +41,11 @@ export const configValidationSchema = z.object({
       invalid_type_error: 'NODE_ENV must be a string',
     })
     .min(1, { message: 'NODE_ENV is required' }),
+  BCRYPT_SALT_ROUNDS: z
+    .string({
+      required_error: 'BCRYPT_SALT_ROUNDS is required',
+      invalid_type_error: 'BCRYPT_SALT_ROUNDS must be a string',
+    })
+    .regex(/^\d+$/, { message: 'BCRYPT_SALT_ROUNDS must be a valid number' })
+    .transform((val) => parseInt(val, 10)),
 });

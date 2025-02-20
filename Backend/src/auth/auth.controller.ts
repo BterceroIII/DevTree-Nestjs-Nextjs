@@ -7,6 +7,8 @@ import {
   Param,
   Delete,
   HttpStatus,
+  HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -15,6 +17,10 @@ import { ApiResponseWithData } from 'src/common/decorators/api-response-with-dat
 import { CreateUserResponseDto } from './dto/create-user-response.dto';
 import { ApiOperation } from '@nestjs/swagger';
 import { ApiResponseDto } from 'src/common/dto/api-response.dto';
+import { Public } from 'src/common/decorators/public.decorator';
+import { AuthGuard } from '@nestjs/passport';
+import { LoginUserDto } from './dto/login-user.dto';
+import { LoginUserResponseDto } from './dto/login-user-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -37,6 +43,24 @@ export class AuthController {
       'User created successfully',
       'User completed registration',
     );
+  }
+
+  @ApiOperation({ summary: 'Login an existing user' })
+  @ApiResponseWithData(LoginUserDto, 'Your are logged in', HttpStatus.OK)
+  @ApiResponseWithData(
+    null,
+    'Invalid MLS ID. Please ensure your license is active and correct..',
+    HttpStatus.BAD_REQUEST,
+  )
+  @Public()
+  @HttpCode(200)
+  @UseGuards(AuthGuard('local'))
+  @Post('login')
+  async loginUser(
+    @Body() loginUserDto: LoginUserDto,
+  ): Promise<ApiResponseDto<LoginUserResponseDto>> {
+    const result = await this.authService.login(loginUserDto);
+    return ApiResponseDto.Success(result, 'User Login', 'Your are logged in');
   }
 
   @Get()
