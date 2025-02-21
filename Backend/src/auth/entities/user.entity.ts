@@ -1,4 +1,4 @@
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { RefreshToken } from './refresh-token.entity';
 
 @Entity()
@@ -27,6 +27,8 @@ export class User {
   @Column({ type: 'varchar', array: true, default: '{}' })
   links: string[];
 
-  @OneToOne(() => RefreshToken, (refreshToken) => refreshToken.user)
-  refreshToken!: RefreshToken;
+  @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user, {
+    cascade: true,
+  })
+  refreshTokens: RefreshToken[];
 }

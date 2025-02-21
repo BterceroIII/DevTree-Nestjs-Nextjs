@@ -39,7 +39,14 @@ async function bootstrap() {
     .setTitle('DevTree')
     .setDescription('API Documentation')
     .setVersion('1.0')
-    //.addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+      'access-token', 
+    )
     .addTag('API')
     .build();
   const document = SwaggerModule.createDocument(app, config, {

@@ -19,6 +19,8 @@ import { JwtPayload } from './interface/jwt-payload.interface';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { TokenResponseDto } from './dto/token-response.dto';
+import { add } from 'date-fns';
+import { RefreshToken } from './entities/refresh-token.entity';
 
 @Injectable()
 export class AuthService {
@@ -26,6 +28,8 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
     private readonly passwordHasher: PasswordHasherService,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
@@ -85,6 +89,15 @@ export class AuthService {
     const refreshToken = this.getRefreshToken({ id: user.id });
     const token = this.getJwtToken({ id: user.id });
 
+    const expireAt = add(new Date(), { days: 7 });
+
+    const savedRefreshToken = this.refreshTokenRepository.create({
+      refreshToken,
+      expiresAt: expireAt,
+      user,
+    });
+    await this.refreshTokenRepository.save(savedRefreshToken);
+
     const userResponse = plainToInstance(
       LoginUserResponseDto,
       { ...user, token, refreshToken },
@@ -126,56 +139,67 @@ export class AuthService {
 
   async refreshToken(refreshToken: string): Promise<TokenResponseDto> {
     try {
-      const payload = this.jwtService.verify(refreshToken);
-
-      // Fetch the user based on the payload from the token
-      const user = await this.userRepository.findOne({
-        where: { id: payload.id },
-        relations: ['refreshToken'],
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET'),
       });
 
-      if (!user || !user.refreshToken) {
-        throw new UnauthorizedException('Invalid user for refresh token');
+      if (!payload || !payload.id) {
+        throw new UnauthorizedException('Invalid refresh token payload');
       }
 
-      // Fetch the stored token
-      const storedToken = user.refreshToken;
+      // Busca el refresh token en la base de datos
+      const storedToken = await this.refreshTokenRepository.findOne({
+        where: { refreshToken },
+        relations: ['user'],
+      });
 
-      // Check if the token is valid and not expired
-      if (
-        !storedToken ||
-        new Date(storedToken.expiresAt).getTime() < Date.now()
-      ) {
-        throw new UnauthorizedException('Invalid or expired refresh token');
+      if (!storedToken) {
+        throw new UnauthorizedException('Refresh token not found');
       }
 
-      // Return a new JWT token
+      // Verifica que el token no haya expirado
+      if (storedToken.expiresAt.getTime() < Date.now()) {
+        throw new UnauthorizedException('Refresh token expired');
+      }
+
+      // Opcional: eliminar el refresh token usado, para rotación de tokens
+      await this.refreshTokenRepository.remove(storedToken);
+      // Genera un nuevo access token
+      const newAccessToken = this.getJwtToken({ id: storedToken.user.id });
+
+      // Genera un nuevo refresh token
+      const newRefreshToken = this.getRefreshToken({ id: storedToken.user.id });
+      const newExpiresAt = add(new Date(), { days: 7 }); // o según tu configuración
+
+      const newTokenEntity = this.refreshTokenRepository.create({
+        refreshToken: newRefreshToken,
+        expiresAt: newExpiresAt,
+        user: storedToken.user,
+      });
+      await this.refreshTokenRepository.save(newTokenEntity);
+      
       return {
-        token: this.getJwtToken({ id: user.id }),
+        token: newAccessToken,
+        refreshToken: newRefreshToken,
       };
+
     } catch (error) {
-      // Improved error handling for JWT-specific errors
       if (error instanceof Error) {
         switch (error.name) {
           case 'TokenExpiredError':
-            this.logger.warn('Refresh token expired');
             throw new UnauthorizedException('Refresh token expired');
           case 'JsonWebTokenError':
-            this.logger.warn('Invalid refresh token');
             throw new UnauthorizedException('Invalid refresh token');
           default:
-            this.logger.error('Error during refresh token:', error);
             throw new InternalServerErrorException(
               'An unexpected error occurred during token refresh.',
             );
         }
       }
-
-      // Handle unknown errors
-      this.logger.error('Unknown error during refresh token:', error);
       throw new InternalServerErrorException(
         'An unexpected error occurred during token refresh.',
       );
     }
   }
 }
+

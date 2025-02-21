@@ -15,16 +15,35 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiResponseWithData } from 'src/common/decorators/api-response-with-data.decorator';
 import { CreateUserResponseDto } from './dto/create-user-response.dto';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ApiResponseDto } from 'src/common/dto/api-response.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { LoginUserDto } from './dto/login-user.dto';
 import { LoginUserResponseDto } from './dto/login-user-response.dto';
+import { TokenResponseDto } from './dto/token-response.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { RefreshTokenResponseDto } from './dto/refresh-token-response.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponseWithData(
+    null,
+    'Refresh token is invalid or expired',
+    HttpStatus.OK,
+  )
+  @Post('refresh-token')
+  async refreshToken(
+    @Body() refreshTokenDto: RefreshTokenDto,
+  ): Promise<ApiResponseDto<RefreshTokenResponseDto>> {
+    const { refreshToken } = refreshTokenDto;
+    const token = await this.authService.refreshToken(refreshToken);
+    const refreshTokenResponse: RefreshTokenResponseDto = { refreshToken: token.refreshToken };
+    return ApiResponseDto.Success(refreshTokenResponse, 'Token Refreshed', 'Token Refreshed');
+  }
 
   @ApiOperation({ summary: 'User register' })
   @ApiResponseWithData(
@@ -52,7 +71,7 @@ export class AuthController {
     'Invalid MLS ID. Please ensure your license is active and correct..',
     HttpStatus.BAD_REQUEST,
   )
-  @Public()
+  //@Public()
   @HttpCode(200)
   @UseGuards(AuthGuard('local'))
   @Post('login')
