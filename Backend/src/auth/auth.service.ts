@@ -125,11 +125,43 @@ export class AuthService {
     return `This action returns all auth`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
+  async getUser(id: string) {
+    const user = await this.userRepository.findOneBy({ id });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    return user;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  async getUserByHandle(handle: string) {
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .select([
+        'user.id',
+        'user.handle',
+        'user.name',
+        'user.description',
+        'user.image',
+        'user.links',
+      ])
+      .where('user.handle = :handle', { handle })
+      .getOne();
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    return user;
+  }
+
+  async searchUserByHandle(handle: string) {
+    const user = await this.userRepository.findOne({ where: { handle } });
+    if (!user) {
+      throw new BadRequestException(`${handle} ya está registrado`);
+    }
+    return `El handle ${handle} ya está registrado`;
+  }
+
+  async updateProfile(id: string, updateUserDto: UpdateUserDto) {
     return `This action updates a #${id} auth ${updateUserDto}`;
   }
 
@@ -177,12 +209,11 @@ export class AuthService {
         user: storedToken.user,
       });
       await this.refreshTokenRepository.save(newTokenEntity);
-      
+
       return {
         token: newAccessToken,
         refreshToken: newRefreshToken,
       };
-
     } catch (error) {
       if (error instanceof Error) {
         switch (error.name) {
@@ -202,4 +233,3 @@ export class AuthService {
     }
   }
 }
-
