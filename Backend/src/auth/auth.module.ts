@@ -11,6 +11,7 @@ import { JwtRefreshTokenStrategy } from './strategies/jwt-refresh-token-strategy
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LocalStrategy } from './strategies/local.strategy';
+import { NormalizeHandle } from 'src/common/services/normalizedHandle.service';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { LocalStrategy } from './strategies/local.strategy';
   providers: [
     AuthService,
     PasswordHasherService,
+    NormalizeHandle,
     JwtService,
     JwtAccessTokenStrategy,
     JwtRefreshTokenStrategy,

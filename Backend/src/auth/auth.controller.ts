@@ -23,6 +23,7 @@ import { LoginUserResponseDto } from './dto/login-user-response.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RefreshTokenResponseDto } from './dto/refresh-token-response.dto';
 import { GetUserHandleResponseDto } from './dto/get-user-handle-response.dto';
+import { UpdateUserResponseDto } from './dto/update-user-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -67,6 +68,22 @@ export class AuthController {
       'User created successfully',
       'User completed registration',
     );
+  }
+
+  @ApiOperation({ summary: 'update user' })
+  @ApiResponseWithData(UpdateUserResponseDto, 'User updated', HttpStatus.OK)
+  @ApiResponseWithData(
+    null,
+    'Invalid user. Please ensure your user is active and correct..',
+    HttpStatus.BAD_REQUEST,
+  )
+  @Patch(':id')
+  async updateProfile(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<ApiResponseDto<UpdateUserResponseDto>> {
+    const user = await this.authService.updateProfile(id, updateUserDto);
+    return ApiResponseDto.Success(user, 'User updated', 'User updated');
   }
 
   @ApiOperation({ summary: 'get user bye handle' })
@@ -139,11 +156,6 @@ export class AuthController {
   ): Promise<ApiResponseDto<CreateUserResponseDto>> {
     const user = await this.authService.getUser(id);
     return ApiResponseDto.Success(user, 'User found', 'User found');
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.authService.updateProfile(id, updateUserDto);
   }
 
   @Delete(':id')

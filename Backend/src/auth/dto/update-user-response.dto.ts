@@ -1,16 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { Expose } from 'class-transformer';
 
-export class UpdateUserDto {
+export class UpdateUserResponseDto {
   @ApiProperty({
     description: 'The handle of the User',
     maxLength: 255,
     required: true,
     example: 'example',
   })
-  @IsString({ message: 'Handle must be a string' })
-  @MaxLength(255, { message: 'Handle must be at most 255 characters' })
-  @IsNotEmpty({ message: 'Email must not be empty' })
+  @Expose()
   handle: string;
 
   @ApiProperty({
@@ -18,8 +16,7 @@ export class UpdateUserDto {
     maxLength: 255,
     example: 'Example Description',
   })
-  @IsString({ message: 'Description must be a string' })
-  @MaxLength(255, { message: 'Description must be at most 255 characters' })
+  @Expose()
   description: string;
 
   @ApiProperty({
@@ -27,6 +24,6 @@ export class UpdateUserDto {
     required: true,
     example: ['https://www.linkedin.com/in/yasser-m-b373117/'],
   })
-  @IsString({ each: true, message: 'Links must be strings' })
+  @Expose()
   links: string[];
 }

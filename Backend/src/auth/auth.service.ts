@@ -21,6 +21,8 @@ import { JwtService } from '@nestjs/jwt';
 import { TokenResponseDto } from './dto/token-response.dto';
 import { add } from 'date-fns';
 import { RefreshToken } from './entities/refresh-token.entity';
+import { UpdateUserResponseDto } from './dto/update-user-response.dto';
+import { NormalizeHandle } from '../common/services/normalizedHandle.service';
 
 @Injectable()
 export class AuthService {
@@ -31,82 +33,90 @@ export class AuthService {
     @InjectRepository(RefreshToken)
     private readonly refreshTokenRepository: Repository<RefreshToken>,
     private readonly passwordHasher: PasswordHasherService,
+    private readonly normalizeHandle: NormalizeHandle,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<CreateUserResponseDto> {
-    return await this.userRepository.manager.transaction(async (manager) => {
-      const { email, password, handle } = createUserDto;
+    try {
+      return await this.userRepository.manager.transaction(async (manager) => {
+        const { email, password, handle } = createUserDto;
 
-      const isEmailRegistered = await this.userRepository.findOne({
-        where: { email },
+        const isEmailRegistered = await this.userRepository.findOne({
+          where: { email },
+        });
+        if (isEmailRegistered) {
+          throw new BadRequestException('Email already registered');
+        }
+
+        const isHandleRegistered = await this.userRepository.findOne({
+          where: { handle },
+        });
+        if (isHandleRegistered) {
+          throw new BadRequestException('Handle already registered');
+        }
+
+        const hashedPassword = await this.passwordHasher.hashPassword(password);
+
+        const userEntity = manager.create(User, {
+          ...createUserDto,
+          password: hashedPassword,
+        });
+
+        const savedUser = await manager.save(userEntity);
+
+        const responseDto = plainToInstance(CreateUserResponseDto, savedUser, {
+          excludeExtraneousValues: true,
+          enableImplicitConversion: true,
+        });
+
+        return responseDto;
       });
-      if (isEmailRegistered) {
-        throw new BadRequestException('Email already registered');
-      }
-
-      const isHandleRegistered = await this.userRepository.findOne({
-        where: { handle },
-      });
-      if (isHandleRegistered) {
-        throw new BadRequestException('Handle already registered');
-      }
-
-      const hashedPassword = await this.passwordHasher.hashPassword(password);
-
-      const userEntity = manager.create(User, {
-        ...createUserDto,
-        password: hashedPassword,
-      });
-
-      const savedUser = await manager.save(userEntity);
-
-      const responseDto = plainToInstance(CreateUserResponseDto, savedUser, {
-        excludeExtraneousValues: true,
-        enableImplicitConversion: true,
-      });
-
-      return responseDto;
-    });
+    } catch (error) {
+      throw error;
+    }
   }
 
   async login(loginUserDto: LoginUserDto): Promise<LoginUserResponseDto> {
-    const { email, password } = loginUserDto;
-    const user = await this.userRepository.findOne({ where: { email } });
-    if (!user) {
-      throw new BadRequestException('Invalid email or password');
+    try {
+      const { email, password } = loginUserDto;
+      const user = await this.userRepository.findOne({ where: { email } });
+      if (!user) {
+        throw new BadRequestException('Invalid email or password');
+      }
+
+      const isPasswordValid = await this.passwordHasher.comparePasswords(
+        password,
+        user.password,
+      );
+      if (!isPasswordValid) {
+        throw new BadRequestException('Invalid email or password');
+      }
+
+      const refreshToken = this.getRefreshToken({ id: user.id });
+      const token = this.getJwtToken({ id: user.id });
+
+      const expireAt = add(new Date(), { days: 7 });
+
+      const savedRefreshToken = this.refreshTokenRepository.create({
+        refreshToken,
+        expiresAt: expireAt,
+        user,
+      });
+      await this.refreshTokenRepository.save(savedRefreshToken);
+
+      const userResponse = plainToInstance(
+        LoginUserResponseDto,
+        { ...user, token, refreshToken },
+        {
+          excludeExtraneousValues: true,
+        },
+      );
+      return userResponse;
+    } catch (error) {
+      throw error;
     }
-
-    const isPasswordValid = await this.passwordHasher.comparePasswords(
-      password,
-      user.password,
-    );
-    if (!isPasswordValid) {
-      throw new BadRequestException('Invalid email or password');
-    }
-
-    const refreshToken = this.getRefreshToken({ id: user.id });
-    const token = this.getJwtToken({ id: user.id });
-
-    const expireAt = add(new Date(), { days: 7 });
-
-    const savedRefreshToken = this.refreshTokenRepository.create({
-      refreshToken,
-      expiresAt: expireAt,
-      user,
-    });
-    await this.refreshTokenRepository.save(savedRefreshToken);
-
-    const userResponse = plainToInstance(
-      LoginUserResponseDto,
-      { ...user, token, refreshToken },
-      {
-        excludeExtraneousValues: true,
-      },
-    );
-
-    return userResponse;
   }
 
   private getJwtToken(payload: JwtPayload): string {
@@ -161,8 +171,43 @@ export class AuthService {
     return `El handle ${handle} ya está registrado`;
   }
 
-  async updateProfile(id: string, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} auth ${updateUserDto}`;
+  async updateProfile(
+    userId: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<UpdateUserResponseDto> {
+    try {
+      const normalizedHandle = this.normalizeHandle.normalizeHandle(
+        updateUserDto.handle,
+      );
+      updateUserDto.handle = normalizedHandle;
+
+      const userConflict = await this.userRepository.findOne({
+        where: { handle: normalizedHandle },
+      });
+      if (userConflict && userConflict.id !== userId) {
+        throw new BadRequestException('Nombre de usuario no disponible');
+      }
+
+      await this.userRepository.update({ id: userId }, updateUserDto);
+
+      const updatedUser = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+      if (!updatedUser) {
+        throw new InternalServerErrorException(
+          'Error al actualizar el usuario',
+        );
+      }
+
+      const responseDto = plainToInstance(UpdateUserResponseDto, updatedUser, {
+        excludeExtraneousValues: true,
+        enableImplicitConversion: true,
+      });
+
+      return responseDto;
+    } catch (error) {
+      throw error;
+    }
   }
 
   remove(id: number) {
@@ -178,28 +223,20 @@ export class AuthService {
       if (!payload || !payload.id) {
         throw new UnauthorizedException('Invalid refresh token payload');
       }
-
-      // Busca el refresh token en la base de datos
       const storedToken = await this.refreshTokenRepository.findOne({
         where: { refreshToken },
         relations: ['user'],
       });
-
       if (!storedToken) {
         throw new UnauthorizedException('Refresh token not found');
       }
 
-      // Verifica que el token no haya expirado
       if (storedToken.expiresAt.getTime() < Date.now()) {
         throw new UnauthorizedException('Refresh token expired');
       }
-
-      // Opcional: eliminar el refresh token usado, para rotación de tokens
       await this.refreshTokenRepository.remove(storedToken);
-      // Genera un nuevo access token
       const newAccessToken = this.getJwtToken({ id: storedToken.user.id });
 
-      // Genera un nuevo refresh token
       const newRefreshToken = this.getRefreshToken({ id: storedToken.user.id });
       const newExpiresAt = add(new Date(), { days: 7 }); // o según tu configuración
 
