@@ -10,6 +10,7 @@ import { typeOrmConfig } from './common/config/typeorm.config';
 import { configValidationSchema } from './common/config/validation.config';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware';
 import { AuthModule } from './auth/auth.module';
+import { UploadImageModule } from './upload-image/upload-image.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AuthModule } from './auth/auth.module';
     }),
     CommonModule,
     AuthModule,
+    UploadImageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

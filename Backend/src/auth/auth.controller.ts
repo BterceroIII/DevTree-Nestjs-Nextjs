@@ -134,22 +134,6 @@ export class AuthController {
     'Invalid user. Please ensure your user is active and correct..',
     HttpStatus.BAD_REQUEST,
   )
-  @Get()
-  findAll() {
-    return this.authService.findAll();
-  }
-
-  @ApiOperation({ summary: 'get user' })
-  @ApiResponseWithData(
-    CreateUserResponseDto,
-    'Your are logged in',
-    HttpStatus.OK,
-  )
-  @ApiResponseWithData(
-    null,
-    'Invalid user. Please ensure your user is active and correct..',
-    HttpStatus.BAD_REQUEST,
-  )
   @Get(':id')
   async getUser(
     @Param('id') id: string,
