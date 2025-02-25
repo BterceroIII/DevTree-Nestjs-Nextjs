@@ -15,7 +15,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiResponseWithData } from 'src/common/decorators/api-response-with-data.decorator';
 import { CreateUserResponseDto } from './dto/create-user-response.dto';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ApiResponseDto } from 'src/common/dto/api-response.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -77,6 +77,8 @@ export class AuthController {
     'Invalid user. Please ensure your user is active and correct..',
     HttpStatus.BAD_REQUEST,
   )
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt-access'))
   @Patch(':id')
   async updateProfile(
     @Param('id') id: string,
@@ -97,6 +99,8 @@ export class AuthController {
     'Invalid user. Please ensure your user is active and correct..',
     HttpStatus.BAD_REQUEST,
   )
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt-access'))
   @Get('by-handle/:handle')
   async getUserByHandle(
     @Param('handle') handle: string,
@@ -134,6 +138,8 @@ export class AuthController {
     'Invalid user. Please ensure your user is active and correct..',
     HttpStatus.BAD_REQUEST,
   )
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt-access'))
   @Get(':id')
   async getUser(
     @Param('id') id: string,
@@ -142,6 +148,8 @@ export class AuthController {
     return ApiResponseDto.Success(user, 'User found', 'User found');
   }
 
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt-access'))
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.authService.remove(+id);
