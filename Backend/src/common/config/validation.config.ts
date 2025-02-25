@@ -48,4 +48,22 @@ export const configValidationSchema = z.object({
     })
     .regex(/^\d+$/, { message: 'BCRYPT_SALT_ROUNDS must be a valid number' })
     .transform((val) => parseInt(val, 10)),
+  CLOUDINARY_CLOUD_NAME: z
+    .string({
+      required_error: 'CLOUDINARY_CLOUD_NAME is required',
+      invalid_type_error: 'CLOUDINARY_CLOUD_NAME must be a string',
+    })
+    .min(1, { message: 'CLOUDINARY_CLOUD_NAME is required' }),
+  CLOUDINARY_API_KEY: z
+    .string({
+      required_error: 'CLOUDINARY_API_KEY is required',
+      invalid_type_error: 'CLOUDINARY_API_KEY must be a string',
+    })
+    .min(1, { message: 'CLOUDINARY_API_KEY is required' }),
+  CLOUDINARY_API_SECRET: z
+    .string({
+      required_error: 'CLOUDINARY_API_SECRET is required',
+      invalid_type_error: 'CLOUDINARY_API_SECRET must be a string',
+    })
+    .min(1, { message: 'CLOUDINARY_API_SECRET is required' }),
 });
