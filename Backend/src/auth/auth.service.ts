@@ -209,11 +209,6 @@ export class AuthService {
       throw error;
     }
   }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
-  }
-
   async refreshToken(refreshToken: string): Promise<TokenResponseDto> {
     try {
       const payload = this.jwtService.verify(refreshToken, {

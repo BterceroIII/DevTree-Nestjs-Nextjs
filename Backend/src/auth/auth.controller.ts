@@ -5,7 +5,6 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
   HttpStatus,
   HttpCode,
   UseGuards,
@@ -24,6 +23,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RefreshTokenResponseDto } from './dto/refresh-token-response.dto';
 import { GetUserHandleResponseDto } from './dto/get-user-handle-response.dto';
 import { UpdateUserResponseDto } from './dto/update-user-response.dto';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -70,6 +70,28 @@ export class AuthController {
     );
   }
 
+  @ApiOperation({ summary: 'Login an existing user' })
+  @ApiResponseWithData(
+    LoginUserResponseDto,
+    'Your are logged in',
+    HttpStatus.OK,
+  )
+  @ApiResponseWithData(
+    null,
+    'Invalid MLS ID. Please ensure your license is active and correct..',
+    HttpStatus.BAD_REQUEST,
+  )
+  @Public()
+  @HttpCode(200)
+  @UseGuards(AuthGuard('local'))
+  @Post('login')
+  async loginUser(
+    @Body() loginUserDto: LoginUserDto,
+  ): Promise<ApiResponseDto<LoginUserResponseDto>> {
+    const result = await this.authService.login(loginUserDto);
+    return ApiResponseDto.Success(result, 'User Login', 'Your are logged in');
+  }
+
   @ApiOperation({ summary: 'update user' })
   @ApiResponseWithData(UpdateUserResponseDto, 'User updated', HttpStatus.OK)
   @ApiResponseWithData(
@@ -101,30 +123,12 @@ export class AuthController {
   )
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt-access'))
-  @Get('by-handle/:handle')
+  @Get('handle/:handle')
   async getUserByHandle(
     @Param('handle') handle: string,
   ): Promise<ApiResponseDto<GetUserHandleResponseDto>> {
     const user = await this.authService.getUserByHandle(handle);
     return ApiResponseDto.Success(user, 'User found', 'User found');
-  }
-
-  @ApiOperation({ summary: 'Login an existing user' })
-  @ApiResponseWithData(LoginUserDto, 'Your are logged in', HttpStatus.OK)
-  @ApiResponseWithData(
-    null,
-    'Invalid MLS ID. Please ensure your license is active and correct..',
-    HttpStatus.BAD_REQUEST,
-  )
-  //@Public()
-  @HttpCode(200)
-  @UseGuards(AuthGuard('local'))
-  @Post('login')
-  async loginUser(
-    @Body() loginUserDto: LoginUserDto,
-  ): Promise<ApiResponseDto<LoginUserResponseDto>> {
-    const result = await this.authService.login(loginUserDto);
-    return ApiResponseDto.Success(result, 'User Login', 'Your are logged in');
   }
 
   @ApiOperation({ summary: 'get user' })
@@ -146,12 +150,5 @@ export class AuthController {
   ): Promise<ApiResponseDto<CreateUserResponseDto>> {
     const user = await this.authService.getUser(id);
     return ApiResponseDto.Success(user, 'User found', 'User found');
-  }
-
-  @ApiBearerAuth('access-token')
-  @UseGuards(AuthGuard('jwt-access'))
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
   }
 }

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateUserDto {
   @ApiProperty({
@@ -11,6 +11,7 @@ export class UpdateUserDto {
   @IsString({ message: 'Handle must be a string' })
   @MaxLength(255, { message: 'Handle must be at most 255 characters' })
   @IsNotEmpty({ message: 'Email must not be empty' })
+  @IsOptional()
   handle: string;
 
   @ApiProperty({
@@ -20,6 +21,7 @@ export class UpdateUserDto {
   })
   @IsString({ message: 'Description must be a string' })
   @MaxLength(255, { message: 'Description must be at most 255 characters' })
+  @IsOptional()
   description: string;
 
   @ApiProperty({
@@ -28,5 +30,6 @@ export class UpdateUserDto {
     example: ['https://www.linkedin.com/in/yasser-m-b373117/'],
   })
   @IsString({ each: true, message: 'Links must be strings' })
+  @IsOptional()
   links: string[];
 }
