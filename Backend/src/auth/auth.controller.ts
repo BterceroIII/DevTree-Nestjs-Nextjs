@@ -121,8 +121,7 @@ export class AuthController {
     'Invalid user. Please ensure your user is active and correct..',
     HttpStatus.BAD_REQUEST,
   )
-  @ApiBearerAuth('access-token')
-  @UseGuards(AuthGuard('jwt-access'))
+  @Public()
   @Get('handle/:handle')
   async getUserByHandle(
     @Param('handle') handle: string,
