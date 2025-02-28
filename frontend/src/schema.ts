@@ -3,9 +3,9 @@ import { z, ZodTypeAny } from "zod";
 export const ApiResponseSchema = <T extends ZodTypeAny>(dataSchema: T) => {
   return z.object({
     data: dataSchema,
+    message: z.string(),
     succeeded: z.boolean(),
     title: z.string(),
-    message: z.string(),
   });
 };
 
@@ -16,7 +16,7 @@ export const UserSchema = z.object({
   id: z.string(),
   description: z.string(),
   image: z.string(),
-  links: z.string(),
+  links: z.string().array(),
 });
 
 export type User = z.infer<typeof UserSchema>;
@@ -25,9 +25,16 @@ export type User = z.infer<typeof UserSchema>;
 export const UserHandleSchema = UserSchema.pick({
   description: true,
   handle: true,
+  id: true,
   image: true,
   links: true,
   name: true,
+});
+
+export const UserHandleSearchResponseSchema = z.object({
+  succeeded: z.boolean(),
+  message: z.string(),
+  title: z.string(),
 });
 
 export const RegisterFormSchema = UserSchema.pick({
@@ -78,3 +85,4 @@ export type LoginForm = z.infer<typeof LoginFormSchema>;
 export type UserHandle = z.infer<typeof UserHandleSchema>;
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 export type UserHandleResponse = z.infer<typeof UserHandleResponseSchema>;
+export type UserHandleSearch = z.infer<typeof UserHandleSearchResponseSchema>;
