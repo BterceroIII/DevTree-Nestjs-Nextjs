@@ -173,7 +173,7 @@ export class AuthService {
       throw new BadRequestException(`${handle} ya está registrado`);
     }
   
-    return `${handle} está disponible`;
+    return user;
   }
 
   async updateProfile(

@@ -24,6 +24,7 @@ import { RefreshTokenResponseDto } from './dto/refresh-token-response.dto';
 import { GetUserHandleResponseDto } from './dto/get-user-handle-response.dto';
 import { UpdateUserResponseDto } from './dto/update-user-response.dto';
 import { Public } from 'src/common/decorators/public.decorator';
+import { SearchUserHandleResponseDto } from './dto/search-user-handle-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -132,7 +133,7 @@ export class AuthController {
 
   @ApiOperation({ summary: 'search user by handle' })
   @ApiResponseWithData(
-    null,
+    SearchUserHandleResponseDto,
     'Usuario Disponible',
     HttpStatus.OK,
   )
@@ -143,9 +144,10 @@ export class AuthController {
   )
   @Public()
   @Get('search/:handle')
-  async searchUserByHandle(@Param('handle') handle: string) {
+  async searchUserByHandle(@Param('handle') handle: string)
+  :Promise<ApiResponseDto<SearchUserHandleResponseDto>> {
     const user = await this.authService.searchUserByHandle(handle);
-    return user;
+    return ApiResponseDto.Success(user, `${handle} disponible`, `${handle} disponible`);
   }
 
   @ApiOperation({ summary: 'get user' })
