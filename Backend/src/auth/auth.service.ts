@@ -164,11 +164,16 @@ export class AuthService {
   }
 
   async searchUserByHandle(handle: string) {
-    const user = await this.userRepository.findOne({ where: { handle } });
-    if (!user) {
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .where('LOWER(user.handle) = LOWER(:handle)', { handle })
+      .getOne();
+  
+    if (user) {
       throw new BadRequestException(`${handle} ya está registrado`);
     }
-    return `El handle ${handle} ya está registrado`;
+  
+    return `${handle} está disponible`;
   }
 
   async updateProfile(

@@ -127,7 +127,25 @@ export class AuthController {
     @Param('handle') handle: string,
   ): Promise<ApiResponseDto<GetUserHandleResponseDto>> {
     const user = await this.authService.getUserByHandle(handle);
-    return ApiResponseDto.Success(user, 'User found', 'User found');
+    return ApiResponseDto.Success(user, 'Handle ocupado', 'User found');
+  }
+
+  @ApiOperation({ summary: 'search user by handle' })
+  @ApiResponseWithData(
+    null,
+    'Usuario Disponible',
+    HttpStatus.OK,
+  )
+  @ApiResponseWithData(
+    null,
+    'Usuario ya registrado',
+    HttpStatus.BAD_REQUEST,
+  )
+  @Public()
+  @Get('search/:handle')
+  async searchUserByHandle(@Param('handle') handle: string) {
+    const user = await this.authService.searchUserByHandle(handle);
+    return user;
   }
 
   @ApiOperation({ summary: 'get user' })
